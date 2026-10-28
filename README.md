@@ -1,55 +1,70 @@
-# XLS-to-VCF Converter
+# Excel-VCF-Converter
 
-This Excel file exports contact information from a table to a standard `.vcf` (vCard) file format. It allows you to easily import your contacts in bulk to your phonebook or email client.
+Excel-VCF-Converter is a macro-enabled Microsoft Excel workbook for moving contact data between a worksheet and vCard (`.vcf`) files. It exports contacts as vCard 3.0 and imports contact records from VCF files into the workbook.
 
-![](https://1.bp.blogspot.com/-4aoyHryb96Y/Xc_FwMklOhI/AAAAAAACMSY/sHv1hpAWxrMLI05WAa7ZbpHxkkQZPa11ACLcBGAsYHQ/s1600/xlstovcf.png)
+![Excel-VCF-Converter](docs/excel-vcf-converter.png)
 
-## 📥 Installation
+## Features
 
-1.  **Download the File:** Download the `akcanSoft XLS to VCF v1.0.xlsm` file from this repository to your computer.
-2.  **Enable Macros:** When you open the file in Excel, a yellow security warning bar may appear at the top. Click the **"Enable Content"** or **"Enable Macros"** button to allow the VBA code to run.
+- Import VCF contacts into the Data sheet, appending them after existing rows.
+- Preview the detected encoding and contact names, and confirm before importing.
+- Add worksheet columns for recognized or custom VCF fields that are not already present, when enabled in Settings.
+- Export all rows or selected rows; rows hidden by an active filter are excluded.
+- Configure name formatting, phone-number normalization, import encoding, line folding, and other import/export options.
+- Remove duplicate rows by matching all columns or name columns, and clear contact data with confirmation.
+- Optionally write import/export warnings and skipped values to a Log sheet.
+- Choose the workbook interface language from Settings.
 
-## 📖 How to Use
+## Requirements
 
-1.  **Enter Your Data:** The Excel sheet is pre-configured with the following columns. Enter your contact information into the relevant rows, starting from row 2 (row 1 contains the headers).
+- Desktop Microsoft Excel with VBA macros enabled.
+- The `.xlsm` workbook. The `.bas` files in `src/` are source-code files and are not a standalone application.
 
-    | Column | Field     | Description                    |
-    |--------|-----------|--------------------------------|
-    | A      | Name      | Contact's first name           |
-    | B      | Surname   | Contact's last name            |
-    | C      | Tel       | Contact's phone number         |
-    | D      | Email     | Contact's email address        |
+## Getting Started
 
-2.  **Run the Macro:**
-    *   Go to the **"Developer"** tab in the Excel ribbon. (If you don't see this tab, you can enable it from File -> Options -> Customize Ribbon).
-    *   Click the **"Macros"** button.
-    *   Select the macro named **`Create_vCard`** from the list and click **"Run"**.
-3.  **Save the VCF File:** A dialog box will appear, prompting you to choose where to save the generated `.vcf` file and what name to give it. Select your desired location and click "Save".
+1. Download `Excel-VCF-Converter.xlsm` from this repository and open it in desktop Excel.
+2. Enable macros if Excel displays a security warning. Only enable macros for a copy you trust.
+3. Use the buttons on the Data sheet to import or export contacts, remove duplicates, clear data, or open Settings.
 
-That's it! Your `.vcf` file will be created in the chosen folder, containing all the contacts from your Excel sheet. You can now transfer this file to your phone or other devices and import the contacts.
+### Import VCF
 
-## ⚙️ Technical Details
+1. Select **Import** and choose a `.vcf` file.
+2. Review the encoding, contact preview, and any warnings or new columns in the confirmation dialog.
+3. Confirm to append the contacts below the existing data. Select **No** to cancel without writing.
 
-The project is written entirely in **VBA (Visual Basic for Applications)** . The core logic is contained within the `Create_vCard.bas` module.
+The import process supports common contact properties, quoted-printable text, folded lines, and automatic encoding detection. Depending on the Settings options, it can create columns for missing fields and normalize phone numbers. Binary fields such as photos, logos, sounds, and keys are not imported.
 
-### How the Code Works (`Create_vCard.bas`)
+### Export VCF
 
-The VBA macro automates the entire process:
+1. Keep contact data under the headers on the Data sheet.
+2. Select **Export** and choose where to save the `.vcf` file.
+3. If prompted, confirm replacing an existing file.
 
-1.  **Initialization:** It first checks for an existing `FileDialog` object to let the user choose the save location. It also defines the required vCard headers (`BEGIN:VCARD`, `VERSION:3.0`) and footer (`END:VCARD`).
-2.  **Data Looping:** The code loops through each row of data in the "Sheet1" worksheet, starting from row 2 until it finds an empty cell in column A (Name).
-3.  **vCard Formatting:** For each row with data, it builds a vCard entry. The macro structures the information according to the vCard 3.0 specification:
-    *   `N:` and `FN:` properties are constructed using the Name and Surname columns.
-    *   `TEL;TYPE=CELL:` property is created from the Tel column.
-    *   `EMAIL;TYPE=INTERNET;TYPE=WORK;TYPE=pref:` property is created from the Email column.
-4.  **File Writing:** All the generated vCard entries are written sequentially into the single `.vcf` file selected by the user. Each contact entry is separated by a blank line as per the standard.
+The exporter creates vCard 3.0 entries. Rows without a name or organization are skipped. The export scope can be set to all rows or selected rows in Settings; active filters also exclude hidden rows.
 
-## Contacts
+## Settings
+
+Open **Settings** from the Data sheet to configure the workbook. Options include language, import encoding and ANSI code page, whether to add missing fields, phone formatting and country/trunk prefixes, the display-name order, export scope, vCard line folding, output BOM, duplicate matching, highlighting imported rows, and operation logging.
+
+## Repository Contents
+
+- `Excel-VCF-Converter.xlsm`: the macro-enabled workbook.
+- `src/mExport.bas`: VCF export logic.
+- `src/mImport.bas`: VCF parsing and import logic.
+- `src/mFields.bas`: field definitions and worksheet-column management.
+- `src/mCodec.bas`: text, encoding, vCard, date, and phone-format helpers.
+- `src/mSettings.bas`: settings, language, and workbook references.
+- `src/mTools.bas`: progress, logging, duplicate removal, and data clearing.
+
+The VBA modules are provided as readable source files for review and development. Changes to a `.bas` file do not automatically update the macros embedded in the `.xlsm` workbook; import the updated module into the workbook's VBA project and save the workbook to synchronize them.
+
+## Privacy
+
+Before sharing the workbook, remove personal contact information from the Data sheet and, if present, the Log sheet.
+
+## Author
 
 Mesut Akcan  
-**Blog:** https://mesutakcan.blogspot.com  
-**YouTube:** www.youtube.com/mesutakcan
+[Blog](https://mesutakcan.blogspot.com) · [YouTube](https://www.youtube.com/mesutakcan)
 
-## ⭐ Support & Feedback
-
-If you find this tool useful, please consider giving the project a **star** on GitHub! For feedback or issues, feel free to open an issue in the repository.
+For bug reports or suggestions, open an issue in this repository.
