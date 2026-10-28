@@ -4,6 +4,12 @@ Excel-VCF-Converter is a macro-enabled Microsoft Excel workbook for moving conta
 
 ![Excel-VCF-Converter](docs/excel-vcf-converter.png)
 
+## What's New in v2.0
+
+- Added VCF-to-Excel import alongside Excel-to-VCF export, including encoding detection and a confirmation preview before contacts are written.
+- Organized the VBA implementation into readable modules under `src/` for review and version control.
+- Added configurable import/export settings, duplicate removal, and optional operation logging.
+
 ## Features
 
 - Import VCF contacts into the Data sheet, appending them after existing rows.
