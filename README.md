@@ -62,6 +62,10 @@ The VBA modules are provided as readable source files for review and development
 
 Before sharing the workbook, remove personal contact information from the Data sheet and, if present, the Log sheet.
 
+## 📄 License
+
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+
 ## Author
 
 Mesut Akcan  
