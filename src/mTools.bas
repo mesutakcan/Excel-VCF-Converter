@@ -1,4 +1,7 @@
 Attribute VB_Name = "mTools"
+' Mesut Akcan
+' https://github.com/mesutakcan/Excel-VCF-Converter
+' youtube.com/mesutakcan
 Option Explicit
 
 ' Progress bar, log sheet and the Remove Duplicates / Clear Data buttons
@@ -19,8 +22,11 @@ Private mLogN As Long
 ' Shows the progress bar on the Data sheet (shp_rec1 is the grey track, shp_rec2 the filled part)
 Public Sub ProgressStart()
     Dim ws As Worksheet
-    On Error Resume Next
     Set ws = DataSheet()
+    ' The bar lives on Data.  Keep that sheet in front so it remains visible
+    ' while a long-running operation updates it.
+    If Not ActiveSheet Is ws Then ws.Activate
+
     Set mBar1 = ws.Shapes("shp_rec1")
     Set mBar2 = ws.Shapes("shp_rec2")
     mBarWidth = mBar1.Width
@@ -31,11 +37,15 @@ Public Sub ProgressStart()
     mBar2.TextFrame.Characters.text = vbNullString
     mBar1.Visible = msoTrue
     mBar2.Visible = msoTrue
+    ProgressUpdate 0
+    DoEvents
 End Sub
 
 Public Sub ProgressUpdate(ByVal pct As Double)
     If mBar2 Is Nothing Then Exit Sub
     On Error Resume Next
+    If pct < 0 Then pct = 0
+    If pct > 1 Then pct = 1
     mBar2.Width = mBarWidth * pct
     mBar2.TextFrame.Characters.text = Format$(pct, "0%")
     DoEvents
@@ -59,7 +69,7 @@ End Sub
 ' Last row that has data in columns 1..lastCol at or below firstRow; 0 when there is none
 Public Function FindLastRow(ByVal ws As Worksheet, ByVal firstRow As Long, ByVal lastCol As Long) As Long
     Dim found As Range
-    Set found = ws.Range(ws.Cells(firstRow, 1), ws.Cells(ws.Rows.Count, lastCol)).Find( _
+    Set found = ws.Range(ws.Cells(firstRow, 1), ws.Cells(ws.rows.count, lastCol)).Find( _
         What:="*", LookIn:=xlFormulas, LookAt:=xlPart, SearchOrder:=xlByRows, _
         SearchDirection:=xlPrevious, MatchCase:=False, SearchFormat:=False)
     If Not found Is Nothing Then FindLastRow = found.Row
@@ -100,7 +110,7 @@ Public Function LogFlush(ByVal opName As String) As Boolean
     Set ws = ThisWorkbook.Worksheets("Log")
     On Error GoTo 0
     If ws Is Nothing Then
-        Set ws = ThisWorkbook.Worksheets.Add(after:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = ThisWorkbook.Worksheets.Add(after:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
         ws.Name = "Log"
     End If
     ws.Cells.Clear
@@ -120,7 +130,7 @@ Public Function LogFlush(ByVal opName As String) As Boolean
     Next i
     ws.Range(ws.Cells(1, 1), ws.Cells(mLogN + 1, 5)).NumberFormat = "@"
     ws.Range(ws.Cells(1, 1), ws.Cells(mLogN + 1, 5)).value = out
-    ws.Rows(1).Font.Bold = True
+    ws.rows(1).Font.Bold = True
     ws.Columns("A:E").AutoFit
     LogFlush = True
 
@@ -130,15 +140,13 @@ Public Function LogFlush(ByVal opName As String) As Boolean
 End Function
 
 ' Removes duplicate contact rows with Excel's own Remove Duplicates (all columns or the name columns).
-' If Excel rejects the call, the same result is produced by ManualRemove.
 Public Sub Remove_Duplicates()
     Dim ws As Worksheet, rng As Range
     Dim cols() As Variant
     Dim firstRow As Long, lastRow As Long, lastCol As Long, before As Long, after As Long
     Dim n As Long, i As Long, k As Long, idx As Long
     Dim names As Variant
-    Dim stage As String, errText As String, msg As String, removeErr As String
-    Dim failed As Boolean
+    Dim stage As String, errText As String
 
     On Error GoTo ErrHandler
 
@@ -186,29 +194,17 @@ Public Sub Remove_Duplicates()
     Set rng = ws.Range(ws.Cells(firstRow, 1), ws.Cells(lastRow, lastCol))
 
     stage = "RemoveDuplicates"
-    Err.Clear
-    On Error Resume Next
     rng.RemoveDuplicates Columns:=AsVariantArray(cols), header:=xlNo
-    failed = (Err.Number <> 0)
-    If failed Then removeErr = Err.Description
-    Err.Clear
-    On Error GoTo ErrHandler
-    If failed Then
-        stage = "manual"
-        ManualRemove rng, cols
-    End If
 
     stage = "result"
     after = FindLastRow(ws, firstRow, lastCol) - firstRow + 1
     If after < 0 Then after = 0
 
     ' The rows freed at the end keep their old fill color, so they are deleted
-    If before - after > 0 Then ws.Rows((firstRow + after) & ":" & lastRow).Delete
+    If before - after > 0 Then ws.rows((firstRow + after) & ":" & lastRow).Delete
 
     If before - after > 0 Then
-        msg = (before - after) & " " & Txt(S_DEDUP_DONE)
-        If failed Then msg = msg & vbCrLf & "[manual: " & removeErr & "]"
-        MsgBox msg, vbInformation
+        MsgBox (before - after) & " " & Txt(S_DEDUP_DONE), vbInformation
     Else
         MsgBox Txt(S_DEDUP_NONE), vbInformation
     End If
@@ -219,60 +215,10 @@ ErrHandler:
     MsgBox Txt(S_ERROR) & ":" & vbCrLf & errText & " [" & stage & "]", vbExclamation
 End Sub
 
-' Keeps the first row of each duplicate group and moves the others out; the freed rows at the end stay empty
-Private Sub ManualRemove(ByVal rng As Range, ByRef cols As Variant)
-    Dim data As Variant, out() As Variant, keep() As Boolean
-    Dim n As Long, m As Long, i As Long, c As Long, w As Long
-
-    data = rng.value
-    n = UBound(data, 1)
-    m = MarkUniqueRows(data, cols, keep)
-    If m = n Then Exit Sub
-
-    ReDim out(1 To n, 1 To UBound(data, 2))
-    For i = 1 To n
-        If keep(i) Then
-            w = w + 1
-            For c = 1 To UBound(data, 2)
-                out(w, c) = data(i, c)
-            Next c
-        End If
-    Next i
-    rng.value = out
-End Sub
-
-' Flags the first occurrence of every key (case-insensitive like Excel) built from the given columns;
-' returns how many rows are kept.
-Public Function MarkUniqueRows(ByRef data As Variant, ByRef cols As Variant, ByRef keep() As Boolean) As Long
-    Dim seen As Collection
-    Dim n As Long, i As Long, k As Long, kept As Long
-    Dim key As String, part As String
-    Dim dup As Boolean
-
-    n = UBound(data, 1)
-    ReDim keep(1 To n)
-    Set seen = New Collection
-    For i = 1 To n
-        key = vbNullString
-        For k = LBound(cols) To UBound(cols)
-            If IsError(data(i, cols(k))) Then
-                part = "#ERR"
-            Else
-                part = CStr(data(i, cols(k)))
-            End If
-            key = key & part & Chr$(1)
-        Next k
-        On Error Resume Next
-        seen.Add i, key
-        dup = (Err.Number <> 0)
-        Err.Clear
-        On Error GoTo 0
-        If Not dup Then
-            keep(i) = True
-            kept = kept + 1
-        End If
-    Next i
-    MarkUniqueRows = kept
+' Excel accepts the column list of RemoveDuplicates only as a plain Variant passed by value; passing the array
+' variable itself fails with error 5 (invalid procedure call or argument)
+Private Function AsVariantArray(ByRef values() As Variant) As Variant
+    AsVariantArray = values
 End Function
 
 ' Deletes all contact rows after confirmation
@@ -295,15 +241,47 @@ Public Sub Clear_Data()
     ' Rows are deleted up to the last used one rather than to the end of the sheet, so the validation and
     ' conditional formatting that cover the lower rows stay in place.
     firstRow = HEADER_ROW + 1
-    lastRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
-    If lastRow < firstRow Then
+    lastRow = ws.UsedRange.Row + ws.UsedRange.rows.count - 1
+
+    Dim hasOtherData As Boolean, shName As Variant, sh As Worksheet
+    For Each shName In Array("Log", "Merge", "MergeBackup")
+        On Error Resume Next
+        Set sh = ThisWorkbook.Worksheets(CStr(shName))
+        On Error GoTo 0
+        If Not sh Is Nothing Then
+            If sh.UsedRange.rows.count > 1 Or Len(CStr(sh.Cells(1, 1).value)) > 0 Then
+                hasOtherData = True
+                Exit For
+            End If
+        End If
+    Next shName
+
+    If lastRow < firstRow And Not hasOtherData Then
         MsgBox Txt(S_NO_DATA), vbInformation
         Exit Sub
     End If
 
     If MsgBox(Txt(S_CLEAR_CONFIRM), vbYesNo + vbExclamation + vbDefaultButton2) = vbNo Then Exit Sub
-    ws.Rows(firstRow & ":" & lastRow).Delete
-    MsgBox (lastRow - firstRow + 1) & " " & Txt(S_CLEAR_DONE), vbInformation
+
+    Dim deletedCount As Long
+    If lastRow >= firstRow Then
+        deletedCount = lastRow - firstRow + 1
+        ws.rows(firstRow & ":" & lastRow).Delete
+    End If
+
+    ' Also clear Log, Merge, and MergeBackup sheets
+    For Each shName In Array("Log", "Merge", "MergeBackup")
+        On Error Resume Next
+        Set sh = ThisWorkbook.Worksheets(CStr(shName))
+        On Error GoTo 0
+        If Not sh Is Nothing Then sh.Cells.Clear
+    Next shName
+
+    If deletedCount > 0 Then
+        MsgBox deletedCount & " " & Txt(S_CLEAR_DONE), vbInformation
+    Else
+        MsgBox Txt(S_CLEAR_DONE), vbInformation
+    End If
     Exit Sub
 
 ErrHandler:
@@ -311,6 +289,4 @@ ErrHandler:
     MsgBox Txt(S_ERROR) & ":" & vbCrLf & errText, vbExclamation
 End Sub
 
-Private Function AsVariantArray(ByRef values() As Variant) As Variant
-    AsVariantArray = values
-End Function
+

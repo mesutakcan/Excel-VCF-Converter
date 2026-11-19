@@ -2,7 +2,6 @@ Attribute VB_Name = "mCodec"
 ' Mesut Akcan
 ' https://github.com/mesutakcan/Excel-VCF-Converter
 ' youtube.com/mesutakcan
-
 Option Explicit
 
 ' Text helpers shared by export and import: vCard escaping, parsing helpers, encodings and file I/O

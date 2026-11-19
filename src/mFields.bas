@@ -1,4 +1,7 @@
 Attribute VB_Name = "mFields"
+' Mesut Akcan
+' https://github.com/mesutakcan/Excel-VCF-Converter
+' youtube.com/mesutakcan
 Option Explicit
 
 ' Field table: every Data column is described by a row on the Fields sheet (key, vCard property,
@@ -24,7 +27,7 @@ Public Sub LoadFields()
     Dim lastRow As Long, r As Long, n As Long
 
     Set ws = FieldsSheet()
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.rows.count, 1).End(xlUp).Row
     gFldCount = 0
     If lastRow < 2 Then Exit Sub
 
@@ -128,7 +131,7 @@ Public Function AddFieldRow(ByVal key As String, ByVal prop As String, ByVal par
     Dim ws As Worksheet, r As Long
 
     Set ws = FieldsSheet()
-    r = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+    r = ws.Cells(ws.rows.count, 1).End(xlUp).Row + 1
     ws.Range(ws.Cells(r, 1), ws.Cells(r, 6)).NumberFormat = "@"
     ws.Cells(r, 1).value = key
     ws.Cells(r, 2).value = prop

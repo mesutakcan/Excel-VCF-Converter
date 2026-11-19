@@ -1,4 +1,7 @@
 Attribute VB_Name = "mImport"
+' Mesut Akcan
+' https://github.com/mesutakcan/Excel-VCF-Converter
+' youtube.com/mesutakcan
 Option Explicit
 
 ' Import of vCard files into the Data sheet

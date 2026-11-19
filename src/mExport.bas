@@ -1,4 +1,7 @@
 Attribute VB_Name = "mExport"
+' Mesut Akcan
+' https://github.com/mesutakcan/Excel-VCF-Converter
+' youtube.com/mesutakcan
 Option Explicit
 
 ' Export of the Data sheet to a vCard 3.0 file
@@ -24,6 +27,7 @@ Private mFold As Boolean
 Public Sub Create_vCard_File()
     Dim ws As Worksheet, fso As Object
     Dim data As Variant, cards() As String, include() As Boolean
+    Dim isVis() As Boolean, rVis As Range, aVis As Range, cel As Range
     Dim Target As Variant, path As String
     Dim firstRow As Long, lastRow As Long, lastCol As Long, nRows As Long
     Dim i As Long, stepRows As Long, saved As Long, picked As Long
@@ -76,8 +80,27 @@ Public Sub Create_vCard_File()
     ReDim cards(0 To nRows - 1)
     ' Rows hidden by an active AutoFilter are not exported
     filterOn = ws.FilterMode
+    If filterOn Then
+        ReDim isVis(1 To nRows)
+        On Error Resume Next
+        Set rVis = ws.Range(ws.Cells(firstRow, 1), ws.Cells(lastRow, 1)).SpecialCells(xlCellTypeVisible)
+        On Error GoTo 0
+        If Not rVis Is Nothing Then
+            For Each aVis In rVis.Areas
+                For Each cel In aVis
+                    isVis(cel.Row - firstRow + 1) = True
+                Next cel
+            Next aVis
+        End If
+    End If
+
     stepRows = nRows \ 100
     If stepRows < 1 Then stepRows = 1
+
+    ' Keep screen painting enabled: ProgressUpdate redraws shapes on Data.
+    ' Turning this off prevents the progress bar from being visible.
+    Application.ScreenUpdating = True
+    Application.Calculation = xlCalculationManual
 
     For i = 1 To nRows
         If RowIsBlank(data, i, lastCol) Then GoTo NextRow
@@ -85,7 +108,7 @@ Public Sub Create_vCard_File()
             If Not include(i) Then GoTo NextRow
         End If
         If filterOn Then
-            If ws.Rows(firstRow + i - 1).Hidden Then
+            If Not isVis(i) Then
                 filtered = filtered + 1
                 GoTo NextRow
             End If
@@ -115,6 +138,8 @@ NextRow:
         SaveText path, Join(cards, vbNullString), SettingYes("export_bom")
     End If
 
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
     ProgressEnd
 
     If saved > 0 Then
@@ -139,6 +164,8 @@ NextRow:
 
 ErrHandler:
     errText = Err.Description
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
     ProgressEnd
     MsgBox Txt(S_ERROR) & ":" & vbCrLf & errText, vbExclamation
 End Sub
@@ -171,7 +198,7 @@ Private Function MarkSelectedRows(ByVal ws As Worksheet, ByVal firstRow As Long,
     For Each area In Selection.Areas
         lo = area.Row
         If lo < firstRow Then lo = firstRow
-        hi = area.Row + area.Rows.Count - 1
+        hi = area.Row + area.rows.count - 1
         If hi > firstRow + nRows - 1 Then hi = firstRow + nRows - 1
         For r = lo To hi
             k = r - firstRow + 1

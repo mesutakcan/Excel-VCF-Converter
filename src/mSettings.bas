@@ -1,8 +1,8 @@
 Attribute VB_Name = "mSettings"
-Option Explicit
 ' Mesut Akcan
 ' https://github.com/mesutakcan/Excel-VCF-Converter
 ' youtube.com/mesutakcan
+Option Explicit
 
 ' Row of the Data sheet that holds the column headers; contacts start on the next row
 Public Const HEADER_ROW As Long = 2
@@ -63,13 +63,56 @@ Public Const S_IMP_PHONES As Long = 136
 Public Const S_IMP_PHONE_FMT As Long = 137
 Public Const S_IMP_PHONE_KEPT As Long = 138
 Public Const S_R_PHONE As Long = 139
+Public Const S_BTN_MERGE As Long = 145
+Public Const S_MRG_COL_GROUP As Long = 146
+Public Const S_MRG_COL_STATUS As Long = 147
+Public Const S_MRG_COL_ROW As Long = 148
+Public Const S_MRG_COL_NAME As Long = 149
+Public Const S_MRG_COL_PHONES As Long = 150
+Public Const S_MRG_COL_GROUPS As Long = 151
+Public Const S_MRG_COL_ACTION As Long = 152
+Public Const S_MRG_AUTO As Long = 153
+Public Const S_MRG_REVIEW As Long = 154
+Public Const S_MRG_KEEP As Long = 155
+Public Const S_MRG_REMOVE As Long = 156
+Public Const S_MRG_UNCHANGED As Long = 157
+Public Const S_MRG_RECORDS As Long = 158
+Public Const S_MRG_GROUPS_AUTO As Long = 159
+Public Const S_MRG_ROWS_GONE As Long = 160
+Public Const S_MRG_REVIEW_GROUPS As Long = 161
+Public Const S_MRG_SEE_SHEET As Long = 162
+Public Const S_MRG_ANALYSIS_ONLY As Long = 163
+Public Const S_MRG_NOTHING As Long = 164
+Public Const S_BTN_MERGE_APPLY As Long = 171
+Public Const S_BTN_ABOUT As Long = 108
+
+Public Const S_SET_MMETHOD As Long = 172
+Public Const S_SET_MMETHOD_DESC As Long = 173
+Public Const S_MRG_COL_COPIES As Long = 174
+Public Const S_MRG_APPLY_Q As Long = 175
+Public Const S_MRG_IDENT_OF As Long = 176
+Public Const S_MRG_BACKUP_NOTE As Long = 177
+Public Const S_MRG_DONE As Long = 178
+Public Const S_MRG_ROWS_REMOVED As Long = 179
+Public Const S_MRG_BACKUP_WRITTEN As Long = 180
+Public Const S_MRG_COLS_ADDED As Long = 181
+Public Const S_MRG_UNPLACED As Long = 182
+Public Const S_MRG_BK_RUN As Long = 183
+Public Const S_MRG_BK_KEPT As Long = 184
+Public Const S_MRG_BK_MAIN As Long = 185
+Public Const S_MRG_BK_MERGED As Long = 186
+Public Const S_MRG_BK_COPY As Long = 187
+Public Const S_MRG_LOG_INTO As Long = 188
+Public Const S_MRG_LOG_COPY As Long = 189
+Public Const S_MRG_LOG_DIFF As Long = 190
+Public Const S_OP_MERGE As Long = 191
 
 ' Returns the text at row idx of the lang_data table in the selected language
 Public Function Txt(ByVal idx As Long) As String
     Dim tbl As Range, lang As Long
     Set tbl = ThisWorkbook.names("lang_data").RefersToRange
     lang = LangNo()
-    If lang > tbl.Columns.Count Then lang = 1
+    If lang > tbl.Columns.count Then lang = 1
     Txt = CStr(tbl.Cells(idx, lang).value)
 End Function
 
@@ -108,6 +151,8 @@ Private Function ListName(ByVal key As String) As String
         Case "phone_format": ListName = "phone"
         Case "export_scope": ListName = "scope"
         Case "dup_match": ListName = "dup"
+        Case "merge_level": ListName = "merge"
+        Case "merge_method": ListName = "mmethod"
     End Select
 End Function
 
@@ -125,6 +170,15 @@ Public Function CanonicalFromTable(ByRef tbl As Variant, ByVal text As String) A
 End Function
 
 Private Function CanonicalOption(ByVal list As String, ByVal text As String) As String
+    If list = "merge" Then
+        If StrComp(text, "Özdeþ", vbTextCompare) = 0 Or StrComp(text, "Ozdes", vbTextCompare) = 0 Or StrComp(text, "Exact", vbTextCompare) = 0 Then
+            CanonicalOption = "Exact"
+            Exit Function
+        ElseIf StrComp(text, "Kapsamlý", vbTextCompare) = 0 Or StrComp(text, "Kapsamli", vbTextCompare) = 0 Or StrComp(text, "Extended", vbTextCompare) = 0 Then
+            CanonicalOption = "Extended"
+            Exit Function
+        End If
+    End If
     Dim tbl As Variant
     On Error Resume Next
     tbl = ThisWorkbook.names("opt_" & list & "_tbl").RefersToRange.value
@@ -151,6 +205,23 @@ Public Function LocalizedFromTable(ByRef tbl As Variant, ByVal canonical As Stri
 End Function
 
 Private Function LocalizedOption(ByVal list As String, ByVal canonical As String, ByVal lang As Long) As String
+    If list = "merge" Then
+        If StrComp(canonical, "Exact", vbTextCompare) = 0 Then
+            If lang = 2 Then
+                LocalizedOption = "Özdeþ"
+            Else
+                LocalizedOption = "Exact"
+            End If
+            Exit Function
+        ElseIf StrComp(canonical, "Extended", vbTextCompare) = 0 Then
+            If lang = 2 Then
+                LocalizedOption = "Kapsamlý"
+            Else
+                LocalizedOption = "Extended"
+            End If
+            Exit Function
+        End If
+    End If
     Dim tbl As Variant
     On Error Resume Next
     tbl = ThisWorkbook.names("opt_" & list & "_tbl").RefersToRange.value
@@ -234,6 +305,8 @@ Private Function DefaultSetting(ByVal key As String) As String
         Case "highlight": DefaultSetting = "Yes"
         Case "write_log": DefaultSetting = "Yes"
         Case "dup_match": DefaultSetting = "All columns"
+        Case "merge_level": DefaultSetting = "Normal"
+        Case "merge_method": DefaultSetting = "Combine all"
     End Select
 End Function
 
@@ -252,6 +325,9 @@ Public Sub ApplyLanguage()
     ws.Buttons("button3").text = Txt(S_BTN_DEDUP)
     ws.Buttons("button4").text = Txt(S_BTN_CLEAR)
     ws.Buttons("button5").text = Txt(S_BTN_SETTINGS)
+    ws.Buttons("button6").text = Txt(S_BTN_MERGE)
+    ws.Buttons("button7").text = Txt(S_BTN_MERGE_APPLY)
+    ws.Buttons("button8").text = Txt(S_BTN_ABOUT)
 End Sub
 
 ' Called from ThisWorkbook when a cell changes. When the language setting changes, the choices held by the other
@@ -269,9 +345,9 @@ Public Sub OnSettingsChanged(ByVal Target As Range)
     ' The language number is a formula on the sheet; make sure it is current before reading it
     Application.Calculate
     Application.EnableEvents = False
-    On Error GoTo Done
+    On Error GoTo done
     keys = Array("import_encoding", "ansi_codepage", "add_missing", "export_bom", "fold_lines", "fn_format", _
-                 "untyped_phone", "phone_format", "export_scope", "highlight", "write_log", "dup_match")
+                 "untyped_phone", "phone_format", "export_scope", "highlight", "write_log", "dup_match", "merge_level", "merge_method")
     For k = 0 To UBound(keys)
         list = ListName(CStr(keys(k)))
         Set c = SettingCell(CStr(keys(k)))
@@ -281,7 +357,7 @@ Public Sub OnSettingsChanged(ByVal Target As Range)
         End If
     Next k
     ApplyLanguage
-Done:
+done:
     Application.EnableEvents = True
 End Sub
 
@@ -292,4 +368,52 @@ Public Sub Show_Settings()
     If c Is Nothing Then Exit Sub
     c.Worksheet.Activate
     c.Select
+End Sub
+
+Sub button8_Click()
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets("About")
+    If Not ws Is Nothing Then
+        Application.GoTo ws.Range("C3")
+    End If
+End Sub
+
+' Settings sayfasýndaki Benzerlik Düzeyi ve Birleþtirme Yöntemi tablolarýný ve adlandýrýlmýþ aralýklarýný yapýlandýrýr
+Public Sub Setup_Merge_Options()
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets("Settings")
+    If ws Is Nothing Then Exit Sub
+    
+    ' Benzerlik düzeyi tablosu (H30:I33)
+    ws.Cells(30, 8).value = "Exact"
+    ws.Cells(30, 9).value = "Özdeþ"
+    ws.Cells(31, 8).value = "Safe"
+    ws.Cells(31, 9).value = "Güvenli"
+    ws.Cells(32, 8).value = "Normal"
+    ws.Cells(32, 9).value = "Normal"
+    ws.Cells(33, 8).value = "Extended"
+    ws.Cells(33, 9).value = "Kapsamlý"
+    
+    ' Birleþtirme yöntemi tablosu (H34:I36)
+    ws.Cells(34, 8).value = "Keep main only"
+    ws.Cells(34, 9).value = "Yalnýzca asýl kayýt"
+    ws.Cells(35, 8).value = "Fill empty fields"
+    ws.Cells(35, 9).value = "Boþlarý doldur"
+    ws.Cells(36, 8).value = "Combine all"
+    ws.Cells(36, 9).value = "Hepsini birleþtir"
+    
+    ' Tanýmlý adlarý güncelle
+    ThisWorkbook.names.Add Name:="opt_merge_tbl", RefersTo:="=Settings!$H$30:$I$33"
+    ThisWorkbook.names.Add Name:="opt_mmethod_tbl", RefersTo:="=Settings!$H$34:$I$36"
+    
+    ' Açýklama hücresini güncelle (C18)
+    ws.Range("C18").value = "Özdeþ: yalnýzca birebir ayný ad ve ortak telefon/e-posta. Güvenli: ayný veya birbirini kapsayan adlar. Normal: ayrýca baþ harf veya tek harf yazým farký. Kapsamlý: sýralý sözcük eþleþmesi ve geniþletilmiþ baðlar."
+    
+    MsgBox "Ayarlar tablosu güncellendi. 'Özdeþ' (Exact) ve 'Kapsamlý' (Extended) seçenekleri eklendi.", vbInformation
+End Sub
+
+Public Sub Setup_Extended_Option()
+    Setup_Merge_Options
 End Sub
