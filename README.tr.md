@@ -1,3 +1,10 @@
+[![GitHub release](https://img.shields.io/github/v/release/mesutakcan/Excel-VCF-Converter)](https://github.com/mesutakcan/Excel-VCF-Converter/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/mesutakcan/Excel-VCF-Converter/total)](https://github.com/mesutakcan/Excel-VCF-Converter/releases)
+[![License](https://img.shields.io/github/license/mesutakcan/Excel-VCF-Converter)](https://github.com/mesutakcan/Excel-VCF-Converter/blob/main/LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/mesutakcan/Excel-VCF-Converter)](https://github.com/mesutakcan/Excel-VCF-Converter/issues)
+[![GitHub stars](https://img.shields.io/github/stars/mesutakcan/Excel-VCF-Converter?style=social)](https://github.com/mesutakcan/Excel-VCF-Converter)
+[![GitHub forks](https://img.shields.io/github/forks/mesutakcan/Excel-VCF-Converter?style=social)](https://github.com/mesutakcan/Excel-VCF-Converter)
+
 [Türkçe](README.tr.md) | [English](README.md)
 
 # Excel-VCF-Converter
