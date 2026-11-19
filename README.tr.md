@@ -1,4 +1,4 @@
-[🇹🇷 Türkçe](README.tr.md) | [🇬🇧 English](README.md)
+[Türkçe](README.tr.md) | [English](README.md)
 
 # Excel-VCF-Converter
 
